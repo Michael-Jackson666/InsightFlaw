@@ -253,5 +253,5 @@ transformers_cache/
 # MacOS
 .DS_Store
 
-# VectorDB
-.milvus_deom.db.lock
+# VectorDB lock files
+*.db.lock
