@@ -10,9 +10,13 @@ milvus/
 ├── tutorial/                           # Interactive tutorials (Jupyter Notebooks)
 │   ├── lite-tutorial.ipynb             # Milvus Lite quickstart
 │   └── diskann-tutorial.ipynb          # DiskANN index tutorial
-├── SIFT1M/                             # SIFT1M benchmark tests
+├── SIFT1M/                             # SIFT1M benchmark (1M vectors)
 │   ├── diskann-test.py                 # DiskANN performance benchmark
 │   └── SIFT1M.md                       # Dataset documentation
+├── SIFT1B/                             # SIFT1B benchmark (1B vectors) ⭐
+│   ├── benchmark.py                    # Billion-scale benchmark script
+│   ├── download.py                     # Dataset download utility
+│   └── config.py                       # Benchmark configuration
 ├── diskann.py                          # DiskANN index implementation
 ├── standalone.py                       # Milvus Standalone connection test
 ├── test-lite.py                        # Milvus Lite basic test
@@ -67,6 +71,23 @@ jupyter notebook tutorial/lite-tutorial.ipynb
 | IVF_FLAT | Medium datasets | Medium | Good recall |
 | HNSW | Real-time search | High | Low latency |
 | DiskANN | Large datasets (1M+) | Low | High throughput |
+
+## Benchmark Datasets
+
+| Dataset | Vectors | Dimensions | Use Case |
+|---------|---------|------------|----------|
+| SIFT1M | 1,000,000 | 128 | Quick testing |
+| SIFT1B | 1,000,000,000 | 128 | Billion-scale production test |
+
+### SIFT1B Requirements (64GB RAM + 1TB SSD)
+
+```bash
+# Download and run billion-scale benchmark
+cd SIFT1B
+python download.py           # Download ~130GB dataset
+python benchmark.py -n 100M  # Start with 100M subset
+python benchmark.py -n 1B    # Full billion-scale test
+```
 
 ## Requirements
 
