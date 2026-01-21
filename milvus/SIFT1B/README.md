@@ -1,145 +1,100 @@
-# SIFT1B Billion-Scale Vector Benchmark
+# SIFT1B 亿级向量检索测试
 
-Large-scale vector search benchmark using the SIFT1B dataset (1 billion 128-dimensional vectors).
+使用 SIFT1B 数据集进行 **10亿** 128维向量的 DiskANN 性能基准测试。
 
-## Dataset Overview
+## 数据集概览
 
-| Property | Value |
-|----------|-------|
-| Base Vectors | 1,000,000,000 (1B) |
-| Query Vectors | 10,000 |
-| Dimensions | 128 |
-| Distance Metric | L2 (Euclidean) |
-| Raw Data Size | ~128 GB |
-| Index Size (DiskANN) | ~150-200 GB |
+| 属性 | 值 |
+|------|-----|
+| 底库向量 | 1,000,000,000 (10亿) |
+| 查询向量 | 10,000 |
+| 维度 | 128 |
+| 距离度量 | L2 (欧氏距离) |
+| 原始数据大小 | ~128 GB |
+| 索引大小 (DiskANN) | ~150-200 GB |
 
-## Hardware Requirements
+## 硬件要求
 
-| Resource | Minimum | Recommended |
-|----------|---------|-------------|
+| 资源 | 最低 | 推荐 |
+|------|------|------|
 | RAM | 32 GB | 64 GB |
-| Disk | 500 GB SSD | 1 TB NVMe SSD |
-| CPU | 8 cores | 16+ cores |
+| 磁盘 | 500 GB SSD | 1 TB NVMe SSD |
+| CPU | 8 核 | 16+ 核 |
 
-## Files
+## 文件结构
 
 ```
 SIFT1B/
-├── README.md           # This file
-├── config.py           # Configuration and constants
-├── download.py         # Dataset download script
-├── benchmark.py        # Full benchmark test
-└── data/               # Dataset storage (gitignored)
-    ├── bigann_base.bvecs      # Base vectors (128 GB)
-    ├── bigann_query.bvecs     # Query vectors
-    └── bigann_gnd/            # Ground truth
+├── README.md           # 本文件
+├── SIFT1B.md           # 详细测试指南
+├── diskann-test.py     # DiskANN 性能测试脚本
+└── data/               # 数据存储目录 (gitignored)
+    ├── bigann_base.bvecs    # 底库向量 (128 GB)
+    ├── bigann_query.bvecs   # 查询向量
+    └── bigann_gnd/          # Ground truth
 ```
 
-## Download Dataset
-
-The SIFT1B dataset is available from the INRIA BigANN project.
-
-### Option 1: Download Script (Recommended)
+## 下载数据集
 
 ```bash
-python download.py
-```
+# 进入数据目录
+cd data
 
-### Option 2: Manual Download
-
-```bash
-# Create data directory
-mkdir -p data && cd data
-
-# Download base vectors (128 GB, takes several hours)
+# 下载底库向量 (约 128 GB，需数小时)
 wget ftp://ftp.irisa.fr/local/texmex/corpus/bigann_base.bvecs.gz
 gunzip bigann_base.bvecs.gz
 
-# Download query vectors
+# 下载查询向量 (约 1 MB)
 wget ftp://ftp.irisa.fr/local/texmex/corpus/bigann_query.bvecs.gz
 gunzip bigann_query.bvecs.gz
 
-# Download ground truth
+# 下载 ground truth (约 40 MB)
 wget ftp://ftp.irisa.fr/local/texmex/corpus/bigann_gnd.tar.gz
 tar -xzf bigann_gnd.tar.gz
 ```
 
-## Quick Start
+## 快速开始
 
-1. Ensure Milvus Standalone is running with sufficient resources:
+1. 确保 Milvus Standalone 运行中且内存充足
 
-```yaml
-# docker-compose.yml - increase memory limit
-services:
-  standalone:
-    deploy:
-      resources:
-        limits:
-          memory: 48G
-```
-
-2. Download the dataset:
+2. 渐进式测试 (推荐):
 
 ```bash
-python download.py --subset 100M  # Start with 100M subset
+# 安装依赖
+pip install pymilvus numpy h5py
+
+# 先测试 1000 万向量
+python diskann-test.py -n 10M
+
+# 再测试 1 亿向量
+python diskann-test.py -n 100M
+
+# 最后测试 10 亿向量
+python diskann-test.py -n 1B
 ```
 
-3. Run the benchmark:
+## 测试预设
 
-```bash
-python benchmark.py --vectors 100000000  # 100M vectors first
-```
+| 预设 | 向量数 | 磁盘占用 | 预计耗时 |
+|------|--------|----------|----------|
+| 10M | 1000万 | ~1.5 GB | 10-15 min |
+| 100M | 1亿 | ~15 GB | 1-2 hours |
+| 500M | 5亿 | ~75 GB | 3-5 hours |
+| 1B | 10亿 | ~150 GB | 8-12 hours |
 
-## Benchmark Configurations
+## 预期性能 (64GB RAM + NVMe SSD)
 
-### Test Subsets (for incremental testing)
-
-| Subset | Vectors | Disk Usage | Est. Insert Time |
-|--------|---------|------------|------------------|
-| 10M | 10,000,000 | ~1.5 GB | 5-10 min |
-| 100M | 100,000,000 | ~15 GB | 30-60 min |
-| 500M | 500,000,000 | ~75 GB | 3-5 hours |
-| 1B | 1,000,000,000 | ~150 GB | 8-12 hours |
-
-### DiskANN Parameters for Billion-Scale
-
-```python
-# Recommended index parameters for 1B vectors
-index_params = {
-    "index_type": "DISKANN",
-    "metric_type": "L2",
-    "params": {}  # DiskANN auto-tunes for dataset size
-}
-
-# Search parameters (adjust based on recall/latency tradeoff)
-search_params = {
-    "params": {
-        "search_list": 100,   # Minimum for Top-100
-        # "search_list": 200, # Higher recall
-        # "search_list": 500, # Maximum recall
-    }
-}
-```
-
-## Expected Performance
-
-Based on 64GB RAM + NVMe SSD configuration:
-
-| Metric | 100M | 500M | 1B |
-|--------|------|------|-----|
-| Index Build Time | ~30 min | ~3 hrs | ~8 hrs |
-| QPS (search_list=100) | ~500 | ~300 | ~200 |
+| 指标 | 100M | 500M | 1B |
+|------|------|------|-----|
+| 索引构建 | ~30 min | ~3 hrs | ~8 hrs |
+| QPS | ~500 | ~300 | ~200 |
 | Recall@100 | 0.95+ | 0.93+ | 0.90+ |
-| P99 Latency | <50ms | <100ms | <150ms |
 
-## Notes
+## 详细说明
 
-- **Incremental Testing**: Start with 10M, then 100M, before full 1B
-- **Disk I/O**: NVMe SSD strongly recommended; HDD will be 10x slower
-- **Memory**: DiskANN is disk-optimized but benefits from more RAM for caching
-- **Index Persistence**: Milvus stores index on disk, restart preserves data
+查看 [SIFT1B.md](SIFT1B.md) 获取完整的测试指南和参数说明。
 
-## References
+## 参考资料
 
 - [BigANN Benchmark](http://corpus-texmex.irisa.fr/)
 - [DiskANN Paper](https://proceedings.neurips.cc/paper/2019/hash/09853c7fb1d3f8ee67a61b6bf4a7f8e6-Abstract.html)
