@@ -1,0 +1,10 @@
+# Downloaded datasets
+data/*.hdf5
+data/*.bvecs
+data/*.fvecs
+data/*.ivecs
+data/*.gz
+data/*.tar
+
+# Keep data directory
+!data/.gitkeep
