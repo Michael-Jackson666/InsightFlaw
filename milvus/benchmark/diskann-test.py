@@ -34,6 +34,19 @@ from datasets import (
 # ================= 配置 =================
 DEFAULT_URI = "http://localhost:19530"
 DEFAULT_BATCH_SIZE = 50000
+GRPC_MAX_MESSAGE_SIZE = 64 * 1024 * 1024  # 64 MB
+
+
+def calculate_batch_size(dimension: int, max_batch: int = DEFAULT_BATCH_SIZE) -> int:
+    """根据向量维度计算安全的批量大小，避免超过 gRPC 消息限制"""
+    # 每个向量大小: dimension * 4 bytes (float32) + overhead (~1.5x for JSON/protobuf)
+    bytes_per_vector = dimension * 4 * 1.5
+    # 保守估计，使用 gRPC 限制的 80%
+    safe_limit = GRPC_MAX_MESSAGE_SIZE * 0.8
+    calculated_batch = int(safe_limit / bytes_per_vector)
+    
+    # 返回计算值和最大值中较小的
+    return min(calculated_batch, max_batch)
 
 
 # ================= 数据加载函数 =================
@@ -159,7 +172,7 @@ def run_benchmark(
     dataset_key: str,
     num_vectors: int = None,
     uri: str = DEFAULT_URI,
-    batch_size: int = DEFAULT_BATCH_SIZE,
+    batch_size: int = None,
     hdf5_path: str = None,
 ):
     """运行基准测试"""
@@ -209,6 +222,16 @@ def run_benchmark(
             if num_vectors is None:
                 num_vectors = 1_000_000_000  # 默认全部
     
+    # 根据维度计算安全的批量大小
+    if batch_size is None:
+        batch_size = calculate_batch_size(dimension)
+    else:
+        # 检查用户指定的 batch_size 是否安全
+        safe_batch = calculate_batch_size(dimension, batch_size)
+        if safe_batch < batch_size:
+            print(f"⚠️  维度 {dimension} 过高，调整批量大小: {batch_size} -> {safe_batch}")
+            batch_size = safe_batch
+    
     print("\n" + "=" * 70)
     print(f"🚀 DiskANN 性能测试")
     print("=" * 70)
@@ -216,6 +239,7 @@ def run_benchmark(
     print(f"   向量数: {num_vectors:,}")
     print(f"   维度: {dimension}")
     print(f"   距离类型: {metric_type}")
+    print(f"   批量大小: {batch_size:,}")
     print("=" * 70)
     
     # 连接 Milvus
