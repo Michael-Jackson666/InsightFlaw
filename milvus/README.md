@@ -72,22 +72,24 @@ jupyter notebook tutorial/lite-tutorial.ipynb
 | HNSW | Real-time search | High | Low latency |
 | DiskANN | Large datasets (1M+) | Low | High throughput |
 
-## Benchmark Datasets
+## Benchmarks
 
-| Dataset | Vectors | Dimensions | Use Case |
-|---------|---------|------------|----------|
-| SIFT1M | 1,000,000 | 128 | Quick testing |
-| SIFT1B | 1,000,000,000 | 128 | Billion-scale production test |
+We maintain a unified benchmark suite at `milvus/benchmark/` that supports multiple datasets (SIFT-128, GIST-960, GloVe, Fashion-MNIST, NYTimes and SIFT1B subsets).
 
-### SIFT1B Requirements (64GB RAM + 1TB SSD)
+Quick commands:
 
 ```bash
-# Download and run billion-scale benchmark
-cd SIFT1B
-python download.py           # Download ~130GB dataset
-python benchmark.py -n 100M  # Start with 100M subset
-python benchmark.py -n 1B    # Full billion-scale test
+# List available datasets
+python milvus/benchmark/diskann-test.py --list
+
+# Download a dataset and run benchmark (example: GIST-960)
+python milvus/benchmark/diskann-test.py --dataset gist --download
+python milvus/benchmark/diskann-test.py --dataset gist
+
+# SIFT1B: supports subset testing via -n (e.g., -n 10M); full dataset requires manual download and large hardware
 ```
+
+Logs and reports: `milvus/benchmark/logs/`
 
 ## Requirements
 
