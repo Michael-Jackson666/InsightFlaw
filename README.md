@@ -1,70 +1,73 @@
 # InsightFlaw
 
-An intelligent RAG (Retrieval-Augmented Generation) application powered by LLM and Vector Database. Turning fragmented data into actionable insights.
+InsightFlaw is a lightweight RAG (Retrieval-Augmented Generation) project combining LLMs and a vector database to turn fragmented data into actionable insights.
 
-## 项目概述
+## Overview
 
-InsightFlaw 是一个基于 RAG 架构的智能应用程序，结合了以下技术栈：
-- **LLM**: 大语言模型用于理解和生成自然语言
-- **VectorDB**: Milvus 向量数据库用于高效的向量检索
-- **LangChain**: 用于构建和编排 LLM 应用程序的框架
+- **LLM**: Large language models for understanding and generating text
+- **VectorDB**: Milvus for efficient vector retrieval (Lite and Standalone)
+- **Framework**: LangChain for building RAG workflows
+- **Indexer**: DiskANN for large-scale approximate nearest neighbor search
 
-## 技术架构
+## Features
 
-- **向量数据库**: Milvus (支持 Lite 和 Standalone 模式)
-- **AI 框架**: LangChain
-- **向量检索算法**: DiskANN (高性能近似最近邻搜索)
-- **部署环境**: macOS
+- Document vectorization and storage
+- Semantic search and question answering
+- Support for multiple data formats and datasets
+- High-performance vector retrieval (DiskANN)
 
-## 功能特性
+## Quick Start
 
-- 文档向量化存储与检索
-- 基于语义的智能问答
-- 支持多种数据格式导入
-- 高效的向量相似度搜索
-
-## 快速开始
-
-### 环境配置
+1. Install dependencies:
 
 ```bash
-# 安装依赖
 pip install -r requirements.txt
-
-# 启动 Milvus Lite (轻量级部署)
-python milvus/lite-tutorial.ipynb
-
-# 或启动 Milvus Standalone (完整功能)
-python milvus/standalone.py
 ```
 
-### 使用示例
+2. Run Milvus Lite (for development):
 
-详见 `milvus/` 目录下的教程文件：
-- `lite-tutorial.ipynb`: Milvus Lite 快速入门
-- `diskann-tutorial.ipynb`: DiskANN 索引使用教程
-- `Milvus Lite部署与应用-EasyVectordb.md`: 详细部署文档
+```bash
+# open the tutorial notebook or run the lite demo
+jupyter notebook milvus/lite-tutorial.ipynb
+```
 
-## 目录结构
+3. Run Milvus Standalone (for production-like testing):
+
+```bash
+# start Milvus Standalone
+docker-compose -f milvus/docker-compose.yml up -d
+```
+
+4. Use the unified benchmark suite:
+
+```bash
+# list datasets
+python milvus/benchmark/diskann-test.py --list
+
+# download and run GIST-960 benchmark
+python milvus/benchmark/diskann-test.py --dataset gist --download
+python milvus/benchmark/diskann-test.py --dataset gist
+```
+
+## Repository Layout
 
 ```
 InsightFlaw/
-├── milvus/              # Milvus 相关配置和示例
-│   ├── diskann.py       # DiskANN 索引实现
-│   ├── standalone.py    # Milvus Standalone 部署
-│   ├── test-lite.py     # Milvus Lite 测试
-│   └── SIFT1M/          # SIFT1M 数据集测试
+├── milvus/                    # Milvus deployment, tutorials, benchmarks
+│   ├── benchmark/             # Unified benchmark scripts and datasets
+│   ├── tutorial/              # Jupyter notebooks and guides
+│   └── ...
+├── LICENSE
 └── README.md
 ```
 
-## 开发计划
+## Roadmap
 
-- [ ] 集成 LangChain 框架
-- [ ] 实现文档解析和向量化pipeline
-- [ ] 添加 Web UI 界面
-- [ ] 支持多种 LLM 模型
-- [ ] 优化检索性能
+- Integrate LangChain for orchestration
+- Build document ingestion & vectorization pipelines
+- Add a web UI for interactive search and QA
+- Add more LLM backends and improve retrieval latency
 
 ## License
 
-详见 [LICENSE](LICENSE) 文件
+See the LICENSE file for details.
