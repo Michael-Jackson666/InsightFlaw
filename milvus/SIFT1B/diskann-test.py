@@ -1,8 +1,8 @@
 """
-SIFT1B DiskANN 性能测试脚本
-============================
+DiskANN 多数据集性能测试脚本
+==============================
 环境: macOS + Docker Milvus Standalone
-数据集: SIFT1B (10亿条 128维向量)
+支持多种 ann-benchmarks 数据集
 
 测试指标:
 - QPS (每秒查询数)
@@ -10,11 +10,12 @@ SIFT1B DiskANN 性能测试脚本
 - Recall@K (召回率)
 
 使用方法:
-    python diskann-test.py              # 默认使用全部数据
-    python diskann-test.py -n 10M       # 使用 1000 万向量测试
-    python diskann-test.py -n 100M      # 使用 1 亿向量测试
-    python diskann-test.py -n 1B        # 使用 10 亿向量测试
-    python diskann-test.py --hdf5 xxx   # 使用 HDF5 格式数据集
+    python diskann-test.py                      # 列出可用数据集
+    python diskann-test.py --dataset sift       # 使用 SIFT-128 (1M)
+    python diskann-test.py --dataset gist       # 使用 GIST-960 (1M)
+    python diskann-test.py --dataset glove100   # 使用 GloVe-100 (1.2M)
+    python diskann-test.py --dataset sift1b -n 100M  # SIFT1B 子集
+    python diskann-test.py --hdf5 path/to/file.hdf5  # 自定义 HDF5 文件
 """
 
 import argparse
@@ -25,20 +26,88 @@ import os
 
 # ================= 配置区域 =================
 URI = "http://localhost:19530"  # Milvus Standalone 地址
-COLLECTION_NAME = "sift1b_diskann_test"
-DIMENSION = 128  # SIFT 数据集是 128 维
 BATCH_SIZE = 50000  # 插入批次大小
 
 # 获取脚本所在目录
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(SCRIPT_DIR, "data")
 
-# 数据文件路径
-BVECS_BASE_PATH = os.path.join(DATA_DIR, "bigann_base.bvecs")
-BVECS_QUERY_PATH = os.path.join(DATA_DIR, "bigann_query.bvecs")
-GND_DIR = os.path.join(DATA_DIR, "bigann_gnd")
+# ================= 数据集定义 =================
+DATASETS = {
+    "sift": {
+        "name": "SIFT-128",
+        "filename": "sift-128-euclidean.hdf5",
+        "url": "https://ann-benchmarks.com/sift-128-euclidean.hdf5",
+        "dimension": 128,
+        "metric": "L2",
+        "vectors": "1M",
+        "size": "~500 MB",
+        "description": "经典 SIFT 特征，128维，100万向量",
+    },
+    "gist": {
+        "name": "GIST-960",
+        "filename": "gist-960-euclidean.hdf5",
+        "url": "https://ann-benchmarks.com/gist-960-euclidean.hdf5",
+        "dimension": 960,
+        "metric": "L2",
+        "vectors": "1M",
+        "size": "~3.6 GB",
+        "description": "GIST 图像描述符，960维，100万向量",
+    },
+    "glove25": {
+        "name": "GloVe-25",
+        "filename": "glove-25-angular.hdf5",
+        "url": "https://ann-benchmarks.com/glove-25-angular.hdf5",
+        "dimension": 25,
+        "metric": "IP",  # Angular = Inner Product after normalization
+        "vectors": "1.2M",
+        "size": "~100 MB",
+        "description": "GloVe 词向量，25维，120万向量",
+    },
+    "glove100": {
+        "name": "GloVe-100",
+        "filename": "glove-100-angular.hdf5",
+        "url": "https://ann-benchmarks.com/glove-100-angular.hdf5",
+        "dimension": 100,
+        "metric": "IP",
+        "vectors": "1.2M",
+        "size": "~460 MB",
+        "description": "GloVe 词向量，100维，120万向量",
+    },
+    "fashion": {
+        "name": "Fashion-MNIST-784",
+        "filename": "fashion-mnist-784-euclidean.hdf5",
+        "url": "https://ann-benchmarks.com/fashion-mnist-784-euclidean.hdf5",
+        "dimension": 784,
+        "metric": "L2",
+        "vectors": "60K",
+        "size": "~200 MB",
+        "description": "Fashion MNIST 图像，784维，6万向量",
+    },
+    "nytimes": {
+        "name": "NYTimes-256",
+        "filename": "nytimes-256-angular.hdf5",
+        "url": "https://ann-benchmarks.com/nytimes-256-angular.hdf5",
+        "dimension": 256,
+        "metric": "IP",
+        "vectors": "290K",
+        "size": "~280 MB",
+        "description": "NYTimes 文章向量，256维，29万向量",
+    },
+    "sift1b": {
+        "name": "SIFT1B (BigANN)",
+        "filename": "bigann_base.bvecs",
+        "url": "ftp://ftp.irisa.fr/local/texmex/corpus/bigann_base.bvecs.gz",
+        "dimension": 128,
+        "metric": "L2",
+        "vectors": "1B",
+        "size": "~128 GB",
+        "format": "bvecs",
+        "description": "10亿级 SIFT 向量，需要大量存储",
+    },
+}
 
-# 向量数量预设
+# 向量数量预设 (用于 SIFT1B)
 PRESETS = {
     "10M": 10_000_000,
     "100M": 100_000_000,
